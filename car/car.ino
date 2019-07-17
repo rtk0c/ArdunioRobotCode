@@ -1,13 +1,21 @@
 #include <Servo.h>
 
-class FadingInt {
+class RangedInt {
   public:
-    FadingInt(int start, int change, int llim, int ulim) {
+    int num;
+    int llimit;
+    int ulimit;
+    int change;
+    bool state;
+
+    RangedInt(int start, int change, int llim, int ulim) {
       this->num = start;
-      this->llimit = llim;
-      this->ulimit = ulim;
+      this->llimit = min(llim, ulim);
+      this->ulimit = max(llim, ulim);
       this->change = change;
+      this->state = true; // Increasing
     }
+
     void next() {
       bool state = this->state;
       if (state) {
@@ -21,23 +29,24 @@ class FadingInt {
       int num = this->num;
       int llim = this->llimit;
       int ulim = this->ulimit;
-      if(num <= llim) {
+      if (num < llim) {
         this->num = llim;
         this->state = !state;
-      } else if(num >= ulim) {
+      } else if (num > ulim) {
         this->num = ulim;
         this->state = !state;
       }
     }
-    int getNum() {
-      return this->num;
+
+    void middle() {
+      this->num = (this->ulimit - this->llimit) / 2;
     }
-  private:
-    int num;
-    int llimit;
-    int ulimit;
-    int change;
-    bool state;
+    void bottom() {
+      this->num = this->llimit;
+    }
+    void top() {
+      this->num = this->ulimit;
+    }
 };
 
 // Pins
@@ -67,14 +76,14 @@ void setup() {
   sensor.attach(SERVO_SIGNAL);
 }
 
-FadingInt pos(0, 5, 0, 180);
+RangedInt pos(0, 5, 0, 179);
 void loop() {
   triggerSens();
   Serial.print(getDistCM());
   Serial.println(" cm");
 
-  sensor.write(pos.getNum());
-  pos.next();
+  sensor.write(pos.num);
+  pos.next(); `
 
   delay(100);
 }
