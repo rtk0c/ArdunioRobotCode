@@ -78,13 +78,20 @@ void setup() {
 
 RangedInt pos(0, 5, 0, 179);
 void loop() {
-   triggerSens();
-   Serial.print(getDistCM());
-   Serial.println(" cm");
+  triggerSens();
+  Serial.print(getDistCM());
+  Serial.println(" cm");
 
-   sensor.write(pos.num);
-   pos.next();
-  // moveRight(1);
+  sensor.write(pos.num);
+  pos.next();
+
+  moveRight(1);
+  moveLeft(1);
+  delay(100);
+  
+  turn(1);
+  delay(100);
+  stopMotors();
 
   delay(100);
 }
@@ -106,7 +113,7 @@ double getDistCM() {
 // Negative = CCW
 void moveBoth(double speed) {
   moveLeft(speed);
-  moveRight(speed);
+  moveRight(-speed);
 }
 void moveLeft(double speed) {
   mvMot(LEFT_ENABLE, LEFT_IN1, LEFT_IN2, speed);
@@ -115,7 +122,26 @@ void moveRight(double speed) {
   mvMot(RIGHT_ENABLE, RIGHT_IN1, RIGHT_IN2, speed);
 }
 void mvMot(unsigned int pinEn, unsigned int pin1, unsigned int pin2, double speed) {
-  digitalWrite(pin1, speed < 0 ? HIGH : LOW);
-  digitalWrite(pin2, speed < 0 ? LOW : HIGH);
-  analogWrite(pinEn, max(abs(speed), 0.3) * 255);
+  if (speed == 0) {
+    analogWrite(pinEn, 0);
+  } else {
+    digitalWrite(pin1, speed < 0 ? HIGH : LOW);
+    digitalWrite(pin2, speed < 0 ? LOW : HIGH);
+    analogWrite(pinEn, max(abs(speed), 0.5) * 255);
+  }
+}
+
+void stopMotors() {
+  moveLeft(0);
+  moveRight(0);
+}
+
+void turn(double rot) {
+  if (rot > 0) {
+    moveLeft(rot);
+    moveRight(-rot);
+  } else {
+    moveLeft(-rot);
+    moveRight(rot);
+  }
 }
