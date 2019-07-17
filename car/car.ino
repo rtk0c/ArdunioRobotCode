@@ -50,15 +50,15 @@ class RangedInt {
 };
 
 // Pins
-const int RIGHT_ENABLE = 9;
-const int RIGHT_IN1 = 7;
-const int RIGHT_IN2 = 8;
-const int LEFT_ENABLE = 0;
-const int LEFT_IN1 = 1;
-const int LEFT_IN2 = 2;
-const int SERVO_SIGNAL = 5;
-const int SENSOR_TRIG = 2;
-const int SENSOR_ECHO = 3;
+const unsigned int RIGHT_ENABLE = 9;
+const unsigned int RIGHT_IN1 = 7;
+const unsigned int RIGHT_IN2 = 8;
+const unsigned int LEFT_ENABLE = 10;
+const unsigned int LEFT_IN1 = 11;
+const unsigned int LEFT_IN2 = 12;
+const unsigned int SERVO_SIGNAL = 5;
+const unsigned int SENSOR_TRIG = 3;
+const unsigned int SENSOR_ECHO = 2;
 
 Servo sensor;
 
@@ -78,12 +78,13 @@ void setup() {
 
 RangedInt pos(0, 5, 0, 179);
 void loop() {
-  triggerSens();
-  Serial.print(getDistCM());
-  Serial.println(" cm");
+   triggerSens();
+   Serial.print(getDistCM());
+   Serial.println(" cm");
 
-  sensor.write(pos.num);
-  pos.next(); `
+   sensor.write(pos.num);
+   pos.next();
+  // moveRight(1);
 
   delay(100);
 }
@@ -99,4 +100,22 @@ void triggerSens() {
 double getDistCM() {
   unsigned long duration = pulseIn(SENSOR_ECHO, HIGH);
   return duration / 2 / 29.1;
+}
+
+// Positive = CW
+// Negative = CCW
+void moveBoth(double speed) {
+  moveLeft(speed);
+  moveRight(speed);
+}
+void moveLeft(double speed) {
+  mvMot(LEFT_ENABLE, LEFT_IN1, LEFT_IN2, speed);
+}
+void moveRight(double speed) {
+  mvMot(RIGHT_ENABLE, RIGHT_IN1, RIGHT_IN2, speed);
+}
+void mvMot(unsigned int pinEn, unsigned int pin1, unsigned int pin2, double speed) {
+  digitalWrite(pin1, speed < 0 ? HIGH : LOW);
+  digitalWrite(pin2, speed < 0 ? LOW : HIGH);
+  analogWrite(pinEn, max(abs(speed), 0.3) * 255);
 }
