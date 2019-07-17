@@ -47,6 +47,10 @@ class RangedInt {
     void top() {
       this->num = this->ulimit;
     }
+    void fractionIn(double fr) {
+      unsigned int range = this->ulimit - this->llimit;
+      this->num = this->llimit + range*fr;
+    }
 };
 
 // Pins
@@ -78,22 +82,6 @@ void setup() {
 
 RangedInt pos(0, 5, 0, 179);
 void loop() {
-  triggerSens();
-  Serial.print(getDistCM());
-  Serial.println(" cm");
-
-  sensor.write(pos.num);
-  pos.next();
-
-  moveRight(1);
-  moveLeft(1);
-  delay(100);
-  
-  turn(1);
-  delay(100);
-  stopMotors();
-
-  delay(100);
 }
 
 void triggerSens() {
