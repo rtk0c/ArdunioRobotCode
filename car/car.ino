@@ -64,7 +64,11 @@ const unsigned int SERVO_SIGNAL = 5;
 const unsigned int SENSOR_TRIG = 3;
 const unsigned int SENSOR_ECHO = 2;
 
+const unsigned int SENSOR_MIDDLE_FRONT = 60 /* degrees */;
+const unsigned int ROTATE_90_DEG_MS = 330;
+
 Servo sensor;
+RangedInt pos(0, 5, 0, 179);
 
 void setup() {
   Serial.begin(9600);
@@ -78,13 +82,53 @@ void setup() {
   pinMode(SENSOR_TRIG, OUTPUT);
   pinMode(SENSOR_ECHO, INPUT);
   sensor.attach(SERVO_SIGNAL);
+
+//  sensor.write(0);
+//  delay(500);
+//  sensor.write(180);
+//  delay(500);
+//  pos.middle();
+//  Serial.println(89);
+//  sensor.write(pos.num);
+  sensor.write(SENSOR_MIDDLE_FRONT);
+
+  turnLeft(90);
+  delay(1000);
+  turnRight(180);
 }
 
-RangedInt pos(0, 5, 0, 179);
+const double kp = 0.5;
+const int target = 20;
+
+bool running = true;
 void loop() {
+  return;
+  if(!running) {
+    return;
+  }
+//  pos.middle();
+//  sensor.write(pos.num);
+
+  triggerSensor();
+  double dist = getDistCM();
+  double error = target - dist;
+  // Going forward is CCW
+  moveBoth(constrain(error * kp, -1, 1));
+//  moveBoth(error < 0 ? -1 : 1);
+
+  if(abs(error) < 1) {
+    stopMotors();
+    running = false;
+  }
+
+//  Serial.println("ff");
+//  Serial.println(error * kp); 
+//  Serial.println(constrain(error * kp, -1, 1));
+
+  delay(10);
 }
 
-void triggerSens() {
+void triggerSensor() {
   digitalWrite(SENSOR_TRIG, LOW);
   delayMicroseconds(5);
   digitalWrite(SENSOR_TRIG, HIGH);
@@ -101,7 +145,7 @@ double getDistCM() {
 // Negative = CCW
 void moveBoth(double speed) {
   moveLeft(speed);
-  moveRight(-speed);
+  moveRight(speed);
 }
 void moveLeft(double speed) {
   mvMot(LEFT_ENABLE, LEFT_IN1, LEFT_IN2, speed);
@@ -125,11 +169,19 @@ void stopMotors() {
 }
 
 void turn(double rot) {
-  if (rot > 0) {
-    moveLeft(rot);
-    moveRight(-rot);
-  } else {
-    moveLeft(-rot);
-    moveRight(rot);
-  }
+  moveLeft(rot);
+  moveRight(-rot);
+}
+void turnInternal(unsigned int deg, double rot) {
+  double amount90Deg = (double) deg / 90;
+  unsigned int delayMs = amount90Deg * ROTATE_90_DEG_MS;
+  turn(rot);
+  delay(delayMs);
+  stopMotors();
+}
+void turnLeft(unsigned int deg) {
+  turnInternal(deg, 1);
+}
+void turnRight(unsigned int deg) {
+  turnInternal(deg, -1);
 }
