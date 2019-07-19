@@ -18,7 +18,7 @@ const unsigned int ROTATE_90_DEG_MS = 330;
 
 const double kp = 0.5;
 
-enum State { forward,  enterLeft,  left,  enterRight,  right,  backward };
+enum State { forward,  checkLeft,  turningLeft,  checkRight,  turningRight,  backward };
 
 State state = forward;
 bool running = true;
@@ -60,8 +60,8 @@ void loop() {
 
         if (abs(error) < 1) {
           stopMotors();
-          delay(100); // Stableize car's motion
-          state = enterLeft;
+          delay(1000); // Stablize car's motion
+          state = checkLeft;
         } else {
           // TODO fix motor not working under less power
           /*double spd = mapDb(constrain(error * kp, -10, 10), -10, 10, -1, 1);
@@ -85,7 +85,7 @@ void loop() {
         break;
       }
     // Car is completely stopped
-    case enterLeft: {
+    case checkLeft: {
         servo.write(SENSOR_LEFT);
         delay(1000); // Give time for the servo to turn
 
@@ -93,11 +93,11 @@ void loop() {
         target = 30;
         error = target - dist;
 
-        state = dist < target ? enterRight : left;
+        state = dist < target ? checkRight : turningLeft;
         break;
       }
     // Car is completely stopped
-    case left: {
+    case turningLeft: {
         servo.write(SENSOR_MIDDLE_FRONT);
 
         dist = getDistCM();
@@ -110,7 +110,7 @@ void loop() {
         break;
       }
     // Car is completely stopped
-    case enterRight: {
+    case checkRight: {
         servo.write(SENSOR_RIGHT);
         delay(1000); // Give time for the servo to turn
 
@@ -118,10 +118,10 @@ void loop() {
         target = 30;
         error = target - dist;
 
-        state = dist < target ? backward : right;
+        state = dist < target ? backward : turningRight;
         break;
       }
-    case right: {
+    case turningRight: {
         servo.write(SENSOR_MIDDLE_FRONT);
 
         dist = getDistCM();

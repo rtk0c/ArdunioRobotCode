@@ -11,7 +11,7 @@ RangedInt::RangedInt(int start, int change, int llim, int ulim) {
   this->state = true; // Increasing
 }
 
-RangedInt::void next() {
+void RangedInt::next() {
   bool state = this->state;
   if (state) {
     // Increasing
@@ -33,20 +33,20 @@ RangedInt::void next() {
   }
 }
 
-RangedInt::void middle() {
+void RangedInt::middle() {
   this->num = (this->ulimit - this->llimit) / 2;
 }
-RangedInt::void bottom() {
+void RangedInt::bottom() {
   this->num = this->llimit;
 }
-RangedInt::void top() {
+void RangedInt::top() {
   this->num = this->ulimit;
 }
-RangedInt::void fractionIn(double fr) {
+void RangedInt::fractionIn(double fr) {
   unsigned int range = this->ulimit - this->llimit;
   this->num = this->llimit + range * fr;
 }
 
-Utils::double mapDb(double n, double start1, double stop1, double start2, double stop2) {
+double Utils::mapDb(double n, double start1, double stop1, double start2, double stop2) {
   return ((n - start1) / (stop1 - start1)) * (stop2 - start2) + start2;
 }
