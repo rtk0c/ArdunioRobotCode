@@ -1,0 +1,52 @@
+#include "ranged_num.hpp"
+
+using namespace std;
+using namespace Utils;
+
+RangedInt::RangedInt(int start, int change, int llim, int ulim) {
+  this->num = start;
+  this->llimit = min(llim, ulim);
+  this->ulimit = max(llim, ulim);
+  this->change = change;
+  this->state = true; // Increasing
+}
+
+RangedInt::void next() {
+  bool state = this->state;
+  if (state) {
+    // Increasing
+    this->num += this->change;
+  } else {
+    // Decreasing
+    this->num -= this->change;
+  }
+
+  int num = this->num;
+  int llim = this->llimit;
+  int ulim = this->ulimit;
+  if (num < llim) {
+    this->num = llim;
+    this->state = !state;
+  } else if (num > ulim) {
+    this->num = ulim;
+    this->state = !state;
+  }
+}
+
+RangedInt::void middle() {
+  this->num = (this->ulimit - this->llimit) / 2;
+}
+RangedInt::void bottom() {
+  this->num = this->llimit;
+}
+RangedInt::void top() {
+  this->num = this->ulimit;
+}
+RangedInt::void fractionIn(double fr) {
+  unsigned int range = this->ulimit - this->llimit;
+  this->num = this->llimit + range * fr;
+}
+
+Utils::double mapDb(double n, double start1, double stop1, double start2, double stop2) {
+  return ((n - start1) / (stop1 - start1)) * (stop2 - start2) + start2;
+}

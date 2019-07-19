@@ -1,0 +1,23 @@
+namespace Utils {
+
+class RangedInt {
+  public:
+    int num;
+    int llimit;
+    int ulimit;
+    int change;
+    bool state;
+
+    RangedInt(int start, int change, int llim, int ulim);
+
+    void next();
+
+    void middle();
+    void bottom();
+    void top();
+    void fractionIn(double fr);
+};
+
+double mapDb(double n, double start1, double stop1, double start2, double stop2);
+
+}

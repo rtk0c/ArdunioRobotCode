@@ -1,58 +1,5 @@
 #include <Servo.h>
 
-class RangedInt {
-  public:
-    int num;
-    int llimit;
-    int ulimit;
-    int change;
-    bool state;
-
-    RangedInt(int start, int change, int llim, int ulim) {
-      this->num = start;
-      this->llimit = min(llim, ulim);
-      this->ulimit = max(llim, ulim);
-      this->change = change;
-      this->state = true; // Increasing
-    }
-
-    void next() {
-      bool state = this->state;
-      if (state) {
-        // Increasing
-        this->num += this->change;
-      } else {
-        // Decreasing
-        this->num -= this->change;
-      }
-
-      int num = this->num;
-      int llim = this->llimit;
-      int ulim = this->ulimit;
-      if (num < llim) {
-        this->num = llim;
-        this->state = !state;
-      } else if (num > ulim) {
-        this->num = ulim;
-        this->state = !state;
-      }
-    }
-
-    void middle() {
-      this->num = (this->ulimit - this->llimit) / 2;
-    }
-    void bottom() {
-      this->num = this->llimit;
-    }
-    void top() {
-      this->num = this->ulimit;
-    }
-    void fractionIn(double fr) {
-      unsigned int range = this->ulimit - this->llimit;
-      this->num = this->llimit + range*fr;
-    }
-};
-
 // Pins
 const unsigned int RIGHT_ENABLE = 9;
 const unsigned int RIGHT_IN1 = 7;
@@ -64,11 +11,19 @@ const unsigned int SERVO_SIGNAL = 5;
 const unsigned int SENSOR_TRIG = 3;
 const unsigned int SENSOR_ECHO = 2;
 
-const unsigned int SENSOR_MIDDLE_FRONT = 60 /* degrees */;
+const unsigned int SENSOR_MIDDLE_FRONT = 80 /* degrees */;
+const unsigned int SENSOR_RIGHT = 0;
+const unsigned int SENSOR_LEFT = 160;
 const unsigned int ROTATE_90_DEG_MS = 330;
 
-Servo sensor;
-RangedInt pos(0, 5, 0, 179);
+const double kp = 0.5;
+
+enum State { forward,  enterLeft,  left,  enterRight,  right,  backward };
+
+State state = forward;
+bool running = true;
+
+Servo servo;
 
 void setup() {
   Serial.begin(9600);
@@ -81,51 +36,110 @@ void setup() {
   pinMode(SERVO_SIGNAL, OUTPUT);
   pinMode(SENSOR_TRIG, OUTPUT);
   pinMode(SENSOR_ECHO, INPUT);
-  sensor.attach(SERVO_SIGNAL);
-
-//  sensor.write(0);
-//  delay(500);
-//  sensor.write(180);
-//  delay(500);
-//  pos.middle();
-//  Serial.println(89);
-//  sensor.write(pos.num);
-  sensor.write(SENSOR_MIDDLE_FRONT);
-
-  turnLeft(90);
-  delay(1000);
-  turnRight(180);
+  servo.attach(SERVO_SIGNAL);
+  servo.write(SENSOR_MIDDLE_FRONT);
 }
 
-const double kp = 0.5;
-const int target = 20;
-
-bool running = true;
 void loop() {
-  return;
-  if(!running) {
+  if (!running) {
     return;
   }
-//  pos.middle();
-//  sensor.write(pos.num);
 
-  triggerSensor();
-  double dist = getDistCM();
-  double error = target - dist;
-  // Going forward is CCW
-  moveBoth(constrain(error * kp, -1, 1));
-//  moveBoth(error < 0 ? -1 : 1);
+  double dist = -1;
+  unsigned int target = -1;
+  double error = -1;
 
-  if(abs(error) < 1) {
-    stopMotors();
-    running = false;
+  switch (state) {
+    case forward: {
+        // Car is either starting to move or is moving
+        servo.write(SENSOR_MIDDLE_FRONT);
+
+        dist = getDistCM();
+        target = 20;
+        error = target - dist;
+
+        if (abs(error) < 1) {
+          stopMotors();
+          delay(100); // Stableize car's motion
+          state = enterLeft;
+        } else {
+          // TODO fix motor not working under less power
+          /*double spd = mapDb(constrain(error * kp, -10, 10), -10, 10, -1, 1);
+            moveBoth(spd);*/
+          moveBoth(constrain(error * kp, -1, 1));
+        }
+        break;
+      }
+    // Car is completely stopped
+    case backward: {
+        servo.write(SENSOR_MIDDLE_FRONT);
+
+        dist = getDistCM();
+        target = 20;
+        error = target - dist;
+
+        moveBoth(1);
+        delay(2000);
+        stopMotors();
+        running = false;
+        break;
+      }
+    // Car is completely stopped
+    case enterLeft: {
+        servo.write(SENSOR_LEFT);
+        delay(1000); // Give time for the servo to turn
+
+        dist = getDistCM();
+        target = 30;
+        error = target - dist;
+
+        state = dist < target ? enterRight : left;
+        break;
+      }
+    // Car is completely stopped
+    case left: {
+        servo.write(SENSOR_MIDDLE_FRONT);
+
+        dist = getDistCM();
+        target = 20;
+        error = target - dist;
+
+        turnLeft(90);
+        delay(100); // Stablize car's motion
+        state = forward;
+        break;
+      }
+    // Car is completely stopped
+    case enterRight: {
+        servo.write(SENSOR_RIGHT);
+        delay(1000); // Give time for the servo to turn
+
+        dist = getDistCM();
+        target = 30;
+        error = target - dist;
+
+        state = dist < target ? backward : right;
+        break;
+      }
+    case right: {
+        servo.write(SENSOR_MIDDLE_FRONT);
+
+        dist = getDistCM();
+        target = 20;
+        error = target - dist;
+
+        turnRight(90);
+        delay(100); // Stablize car's motion
+        state = forward;
+        break;
+      }
   }
 
-//  Serial.println("ff");
-//  Serial.println(error * kp); 
-//  Serial.println(constrain(error * kp, -1, 1));
-
-  delay(10);
+  Serial.print("dist=");
+  Serial.print(dist);
+  Serial.print(" erorr=");
+  Serial.print(error);
+  Serial.println(" | state=forward");
 }
 
 void triggerSensor() {
@@ -137,6 +151,7 @@ void triggerSensor() {
 }
 
 double getDistCM() {
+  triggerSensor();
   unsigned long duration = pulseIn(SENSOR_ECHO, HIGH);
   return duration / 2 / 29.1;
 }
